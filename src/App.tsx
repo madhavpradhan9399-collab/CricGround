@@ -107,6 +107,7 @@ function MainApp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -338,7 +339,14 @@ function MainApp() {
     setLoading(true);
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        if (error) throw error;
+        setStatusMessage({ text: 'Password reset link sent to your email!', type: 'success' });
+        setIsForgotPassword(false);
+      } else if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -601,7 +609,7 @@ function MainApp() {
           </div>
           <h1 className="text-2xl font-bold text-slate-900 text-center mb-2">CricOverlay</h1>
           <p className="text-slate-500 text-center mb-8">
-            {isSignUp ? 'Create your account' : 'Sign in to your account'}
+            {isForgotPassword ? 'Reset your password' : (isSignUp ? 'Create your account' : 'Sign in to your account')}
           </p>
           
           <form onSubmit={handleAuth} className="space-y-4">
@@ -616,17 +624,30 @@ function MainApp() {
                 placeholder="you@example.com"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                placeholder="••••••••"
-              />
-            </div>
+            {!isForgotPassword && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-slate-700">Password</label>
+                  {!isSignUp && (
+                    <button 
+                      type="button"
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-xs text-indigo-600 hover:underline font-medium"
+                    >
+                      Forgot Password?
+                    </button>
+                  )}
+                </div>
+                <input 
+                  type="password" 
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  placeholder="••••••••"
+                />
+              </div>
+            )}
 
             {authError && (
               <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{authError}</p>
@@ -637,17 +658,26 @@ function MainApp() {
               disabled={loading}
               className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+              {loading ? 'Processing...' : (isForgotPassword ? 'Send Reset Link' : (isSignUp ? 'Sign Up' : 'Sign In'))}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button 
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-indigo-600 font-medium hover:underline"
-            >
-              {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-            </button>
+          <div className="mt-6 text-center space-y-2">
+            {isForgotPassword ? (
+              <button 
+                onClick={() => setIsForgotPassword(false)}
+                className="text-sm text-indigo-600 font-medium hover:underline block w-full"
+              >
+                Back to Sign In
+              </button>
+            ) : (
+              <button 
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-sm text-indigo-600 font-medium hover:underline block w-full"
+              >
+                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+              </button>
+            )}
           </div>
           
           <p className="mt-8 text-xs text-slate-400 text-center">

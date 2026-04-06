@@ -399,6 +399,28 @@ export const Overlay: React.FC = () => {
   const batter2 = playerStats[nonStriker?.id] || { name: nonStriker?.name || 'Batter', runs: 0, balls: 0 };
   const bowler = playerStats[currentBowler?.id] || { name: currentBowler?.name || 'Bowler', wickets: 0, runsConceded: 0, ballsBowled: 0 };
 
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 3);
+  };
+
+  const isTeamAWinner = match.toss_winner_id === match.team_a_id;
+  const teamABatsFirst = (isTeamAWinner && match.toss_decision === 'Batting') || (!isTeamAWinner && match.toss_decision === 'Bowling');
+  const currentInnings = match.current_innings || 1;
+  
+  const battingTeam = currentInnings === 1 
+    ? (teamABatsFirst ? match.team_a : match.team_b) 
+    : (teamABatsFirst ? match.team_b : match.team_a);
+  
+  const bowlingTeam = currentInnings === 1 
+    ? (teamABatsFirst ? match.team_b : match.team_a) 
+    : (teamABatsFirst ? match.team_a : match.team_b);
+
   return (
     <>
       {/* Real-time Connection Status Indicator */}
@@ -416,10 +438,10 @@ export const Overlay: React.FC = () => {
       {/* Left: Batting Team Logo & Batters */}
       <div className="flex items-center h-full px-6 gap-6 border-r border-white/10 flex-1">
         <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center p-2 shadow-inner border border-white/5">
-          {match.team_a?.logo_url ? (
-            <img src={match.team_a.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          {battingTeam?.logo_url ? (
+            <img src={battingTeam.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           ) : (
-            <div className="text-white font-black text-2xl">{match.team_a?.name?.substring(0, 1)}</div>
+            <div className="text-white font-black text-2xl">{getInitials(battingTeam?.name)}</div>
           )}
         </div>
         <div className="flex flex-col justify-center min-w-[220px]">
@@ -445,9 +467,33 @@ export const Overlay: React.FC = () => {
       <div className="h-full flex items-center justify-center px-4 z-10">
         <div className="bg-white rounded-xl shadow-2xl w-[420px] h-[80px] flex flex-col items-center overflow-hidden border-2 border-slate-200">
           <div className="flex-1 flex items-center justify-between w-full px-6">
-            <span className="text-slate-900 font-black text-lg uppercase tracking-tighter">
-              {match.team_b?.short_name || match.team_b?.name?.substring(0, 3)} <span className="text-slate-400 mx-1">Vs</span> {match.team_a?.short_name || match.team_a?.name?.substring(0, 3)}
-            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
+                  {match.team_b?.logo_url ? (
+                    <img src={match.team_b.logo_url} alt="B" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="text-[10px] font-black text-slate-400">{getInitials(match.team_b?.name)}</span>
+                  )}
+                </div>
+                <span className="text-slate-900 font-black text-lg uppercase tracking-tighter">
+                  {match.team_b?.short_name || match.team_b?.name?.substring(0, 3)}
+                </span>
+              </div>
+              <span className="text-slate-400 font-bold text-sm">Vs</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-900 font-black text-lg uppercase tracking-tighter">
+                  {match.team_a?.short_name || match.team_a?.name?.substring(0, 3)}
+                </span>
+                <div className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
+                  {match.team_a?.logo_url ? (
+                    <img src={match.team_a.logo_url} alt="A" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                  ) : (
+                    <span className="text-[10px] font-black text-slate-400">{getInitials(match.team_a?.name)}</span>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-slate-900 font-black text-4xl tracking-tighter">{runs}-{wickets}</span>
               <div className="bg-slate-800 text-white text-xs font-black px-2 py-1 rounded uppercase">P1</div>
@@ -512,10 +558,10 @@ export const Overlay: React.FC = () => {
           </div>
         </div>
         <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center p-2 border-2 border-white/20 shadow-lg">
-          {match.team_b?.logo_url ? (
-            <img src={match.team_b.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          {bowlingTeam?.logo_url ? (
+            <img src={bowlingTeam.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           ) : (
-            <div className="text-white font-black text-2xl">{match.team_b?.name?.substring(0, 1)}</div>
+            <div className="text-white font-black text-2xl">{getInitials(bowlingTeam?.name)}</div>
           )}
         </div>
       </div>
