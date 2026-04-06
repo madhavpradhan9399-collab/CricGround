@@ -436,8 +436,8 @@ export const Overlay: React.FC = () => {
 
       <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[95%] max-w-[1200px] h-[100px] bg-gradient-to-r from-[#0a2e1f] via-[#1a4e3f] to-[#0a2e1f] border-y-2 border-white/20 flex items-center shadow-2xl overflow-hidden rounded-xl">
       {/* Left: Batting Team Logo & Batters */}
-      <div className="flex items-center h-full px-6 gap-6 border-r border-white/10 flex-1">
-        <div className="w-16 h-16 bg-white/10 rounded-lg flex items-center justify-center p-2 shadow-inner border border-white/5">
+      <div className="flex items-center h-full px-4 gap-4 border-r border-white/10 flex-1 min-w-0">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-lg flex items-center justify-center p-2 shadow-inner border border-white/5 shrink-0">
           {battingTeam?.logo_url ? (
             <img src={battingTeam.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           ) : (
@@ -464,9 +464,9 @@ export const Overlay: React.FC = () => {
       </div>
 
       {/* Middle: Score Box (White Box like image) */}
-      <div className="h-full flex items-center justify-center px-4 z-10">
-        <div className="bg-white rounded-xl shadow-2xl w-[420px] h-[80px] flex flex-col items-center overflow-hidden border-2 border-slate-200">
-          <div className="flex-1 flex items-center justify-between w-full px-6">
+      <div className="h-full flex items-center justify-center px-2 z-10 flex-[0_1_420px] min-w-0">
+        <div className="bg-white rounded-xl shadow-2xl w-full h-[80px] flex flex-col items-center overflow-hidden border-2 border-slate-200">
+          <div className="flex-1 flex items-center justify-between w-full px-4 sm:px-6">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1.5">
                 <div className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
@@ -521,9 +521,9 @@ export const Overlay: React.FC = () => {
       </div>
 
       {/* Right: Bowler & Ball Tracker */}
-      <div className="flex items-center h-full px-6 gap-6 border-l border-white/10 flex-1 justify-end min-w-0 pr-12">
+      <div className="flex items-center h-full px-4 gap-4 border-l border-white/10 flex-1 justify-end min-w-0 pr-4 sm:pr-12">
         <div className="flex flex-col justify-center items-end max-w-full overflow-hidden">
-          <div className="flex items-center justify-between w-full gap-4">
+          <div className="flex items-center justify-between w-full gap-2 sm:gap-4">
             <span className="text-white font-black text-xl uppercase tracking-tight truncate max-w-[150px]">{bowler.name}</span>
             <span className="text-white font-black text-2xl whitespace-nowrap">
               {bowler.wickets}-{bowler.runsConceded}
