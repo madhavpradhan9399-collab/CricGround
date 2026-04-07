@@ -607,45 +607,54 @@ export const ScoringPanel: React.FC<ScoringPanelProps> = ({ matchId, user }) => 
     
     const nextInnings = (match.current_innings || 1) + 1;
     
-    // Save current score as innings score if needed, but for now just update current_innings
-    const { error } = await supabase
-      .from('matches')
-      .update({ 
-        current_innings: nextInnings,
-        current_score: '0/0 (0.0)' 
-      })
-      .eq('id', matchId)
-      .or(`user_id.eq.${user.id},user_id.is.null`);
+    try {
+      // Save current score as innings score if needed, but for now just update current_innings
+      const { error } = await supabase
+        .from('matches')
+        .update({ 
+          current_innings: nextInnings,
+          current_score: '0/0 (0.0)' 
+        })
+        .eq('id', matchId)
+        .or(`user_id.eq.${user.id},user_id.is.null`);
 
-    if (error) {
-      console.error('Error ending innings:', error);
-    } else {
-      setMatch((prev: any) => ({ ...prev, current_innings: nextInnings, current_score: '0/0 (0.0)' }));
-      setRuns(0);
-      setWickets(0);
-      setOvers(0);
-      setBalls(0);
-      setCurrentOverBalls([]);
-      
-      // Swap players for the new innings
-      if (teamAPlayers.length > 0 && teamBPlayers.length > 0 && match.toss_winner_id && match.toss_decision) {
-        const isTeamAWinner = match.toss_winner_id === match.team_a_id;
-        const teamABatsFirst = (isTeamAWinner && match.toss_decision === 'Batting') || (!isTeamAWinner && match.toss_decision === 'Bowling');
+      if (error) {
+        console.error('Error ending innings:', error);
+        setStatusMessage({ text: `Failed to end innings: ${error.message}`, type: 'error' });
+      } else {
+        setMatch((prev: any) => ({ ...prev, current_innings: nextInnings, current_score: '0/0 (0.0)' }));
+        setRuns(0);
+        setWickets(0);
+        setOvers(0);
+        setBalls(0);
+        setCurrentOverBalls([]);
         
-        const battingTeam = nextInnings === 1 
-          ? (teamABatsFirst ? teamAPlayers : teamBPlayers) 
-          : (teamABatsFirst ? teamBPlayers : teamAPlayers);
-        
-        const bowlingTeam = nextInnings === 1 
-          ? (teamABatsFirst ? teamBPlayers : teamAPlayers) 
-          : (teamABatsFirst ? teamAPlayers : teamBPlayers);
+        // Swap players for the new innings
+        if (teamAPlayers.length > 0 && teamBPlayers.length > 0 && match.toss_winner_id && match.toss_decision) {
+          const isTeamAWinner = match.toss_winner_id === match.team_a_id;
+          const teamABatsFirst = (isTeamAWinner && match.toss_decision === 'Batting') || (!isTeamAWinner && match.toss_decision === 'Bowling');
+          
+          const battingTeam = nextInnings === 1 
+            ? (teamABatsFirst ? teamAPlayers : teamBPlayers) 
+            : (teamABatsFirst ? teamBPlayers : teamAPlayers);
+          
+          const bowlingTeam = nextInnings === 1 
+            ? (teamABatsFirst ? teamBPlayers : teamAPlayers) 
+            : (teamABatsFirst ? teamAPlayers : teamBPlayers);
 
-        setCurrentBatter(battingTeam[0]);
-        setNonStriker(battingTeam[1]);
-        setCurrentBowler(bowlingTeam[0]);
+          setCurrentBatter(battingTeam[0]);
+          setNonStriker(battingTeam[1]);
+          setCurrentBowler(bowlingTeam[0]);
+        }
+        setStatusMessage({ text: 'Innings ended successfully!', type: 'success' });
       }
+    } catch (err: any) {
+      console.error('Unexpected error ending innings:', err);
+      setStatusMessage({ text: `An unexpected error occurred: ${err.message}`, type: 'error' });
+    } finally {
+      setEndingInnings(false);
+      setConfirmModal(null);
     }
-    setEndingInnings(false);
   };
 
   const resetMatch = async () => {
