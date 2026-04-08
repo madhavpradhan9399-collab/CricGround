@@ -189,38 +189,28 @@ export const Overlay: React.FC = () => {
         }
 
         // Calculate current over balls
-        const lastBall = currentInningsBalls[currentInningsBalls.length - 1];
-        let currentOverNum = lastBall ? lastBall.over_number : 0;
+        let displayOverNum = currentMatch.current_score ? parseInt(currentMatch.current_score.match(/\((\d+)\./)?.[1] || '0') : 0;
         
-        // If current_score points to an over that actually has balls, use it
-        if (currentMatch.current_score) {
-          const matchResult = currentMatch.current_score.match(/\((\d+)\./);
-          if (matchResult) {
-            const scoreOverNum = parseInt(matchResult[1]);
-            if (currentInningsBalls.some(b => b.over_number === scoreOverNum)) {
-              currentOverNum = scoreOverNum;
-            }
-          }
-        }
-
-        let currentOverBallsData = currentInningsBalls.filter(b => b.over_number === currentOverNum);
-        
-        // Fallback to previous over if current is empty
-        if (currentOverBallsData.length === 0 && currentOverNum > 0) {
-          const prevOverBalls = currentInningsBalls.filter(b => b.over_number === currentOverNum - 1);
+        // If current over has no balls, show the previous over's balls
+        let currentOverBallsData = currentInningsBalls.filter(b => b.over_number === displayOverNum);
+        if (currentOverBallsData.length === 0 && displayOverNum > 0) {
+          const prevOverBalls = currentInningsBalls.filter(b => b.over_number === displayOverNum - 1);
           if (prevOverBalls.length > 0) {
-            currentOverNum = currentOverNum - 1;
+            displayOverNum = displayOverNum - 1;
             currentOverBallsData = prevOverBalls;
           }
         }
 
-        setCurrentOverBalls(currentOverBallsData.map(b => {
-          if (b.is_wicket) return 'W';
-          if (b.extra_type === 'Wide') return 'WD';
-          if (b.extra_type === 'No Ball') return 'NB';
-          if (b.extra_type) return b.extra_type.substring(0, 1).toUpperCase();
-          return b.runs.toString();
-        }));
+        setCurrentOverBalls(currentOverBallsData
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+          .map(b => {
+            if (b.is_wicket) return 'W';
+            if (b.extra_type === 'Wide') return 'WD';
+            if (b.extra_type === 'No Ball') return 'NB';
+            if (b.extra_type) return b.extra_type.substring(0, 1).toUpperCase();
+            return b.runs.toString();
+          })
+        );
       } else if (currentMatch && currentPlayersA.length > 0 && currentPlayersB.length > 0) {
         // Set initial players if no balls found (start of match)
         const isTeamAWinner = currentMatch.toss_winner_id === currentMatch.team_a_id;
@@ -459,10 +449,10 @@ export const Overlay: React.FC = () => {
         </span>
       </div>
 
-      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[95%] max-w-[1200px] h-[100px] bg-gradient-to-r from-[#0a2e1f] via-[#1a4e3f] to-[#0a2e1f] border-y-2 border-white/20 flex items-center shadow-2xl overflow-hidden rounded-xl">
+      <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[95%] max-w-[1200px] h-[110px] bg-gradient-to-r from-[#0a2e1f] via-[#1a4e3f] to-[#0a2e1f] border-y-2 border-white/20 flex items-center shadow-2xl overflow-hidden rounded-xl">
       {/* Left: Batting Team Logo & Batters */}
       <div className="flex items-center h-full px-4 gap-4 border-r border-white/10 flex-1 min-w-0">
-        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/10 rounded-lg flex items-center justify-center p-2 shadow-inner border border-white/5 shrink-0">
+        <div className="w-14 h-14 sm:w-18 sm:h-18 bg-white/10 rounded-lg flex items-center justify-center p-2 shadow-inner border border-white/5 shrink-0">
           {battingTeam?.logo_url ? (
             <img src={battingTeam.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           ) : (
@@ -489,44 +479,65 @@ export const Overlay: React.FC = () => {
       </div>
 
       {/* Middle: Score Box (White Box like image) */}
-      <div className="h-full flex items-center justify-center px-2 z-10 flex-[0_1_420px] min-w-0">
-        <div className="bg-white rounded-xl shadow-2xl w-full h-[80px] flex flex-col items-center overflow-hidden border-2 border-slate-200">
-          <div className="flex-1 flex items-center justify-between w-full px-4 sm:px-6">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
+      <div className="h-full flex items-center justify-center px-2 z-10 flex-[0_1_450px] min-w-0">
+        <div className="bg-white rounded-xl shadow-2xl w-full h-[95px] flex flex-col items-center overflow-hidden border-2 border-slate-200">
+          <div className="flex-1 flex flex-col items-center justify-center w-full px-4 sm:px-6 gap-1">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
                   {match.team_b?.logo_url ? (
                     <img src={match.team_b.logo_url} alt="B" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                   ) : (
-                    <span className="text-[10px] font-black text-slate-400">{getInitials(match.team_b?.name)}</span>
+                    <span className="text-[8px] font-black text-slate-400">{getInitials(match.team_b?.name)}</span>
                   )}
                 </div>
-                <span className="text-slate-900 font-black text-lg uppercase tracking-tighter">
+                <span className="text-slate-900 font-black text-base uppercase tracking-tighter">
                   {match.team_b?.short_name || match.team_b?.name?.substring(0, 3)}
                 </span>
-              </div>
-              <span className="text-slate-400 font-bold text-sm">Vs</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-900 font-black text-lg uppercase tracking-tighter">
+                <span className="text-slate-400 font-bold text-xs mx-1">Vs</span>
+                <span className="text-slate-900 font-black text-base uppercase tracking-tighter">
                   {match.team_a?.short_name || match.team_a?.name?.substring(0, 3)}
                 </span>
-                <div className="w-6 h-6 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
+                <div className="w-5 h-5 bg-slate-100 rounded flex items-center justify-center overflow-hidden border border-slate-200">
                   {match.team_a?.logo_url ? (
                     <img src={match.team_a.logo_url} alt="A" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                   ) : (
-                    <span className="text-[10px] font-black text-slate-400">{getInitials(match.team_a?.name)}</span>
+                    <span className="text-[8px] font-black text-slate-400">{getInitials(match.team_a?.name)}</span>
                   )}
                 </div>
               </div>
+              <div className="flex items-center gap-3">
+                <span className="text-slate-900 font-black text-3xl tracking-tighter leading-none">{runs}-{wickets}</span>
+                <span className="text-slate-900 font-black text-xs uppercase whitespace-nowrap opacity-60">{overs} OVER</span>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="text-slate-900 font-black text-4xl tracking-tighter">{runs}-{wickets}</span>
-              <div className="bg-slate-800 text-white text-xs font-black px-2 py-1 rounded uppercase">P1</div>
-              <span className="text-slate-900 font-black text-sm uppercase whitespace-nowrap">{overs} OVER</span>
+            
+            {/* Ball Tracker Row */}
+            <div className="flex gap-1.5 py-1">
+              {currentOverBalls.map((ball, i) => (
+                <div 
+                  key={i} 
+                  className={cn(
+                    "rounded-full flex items-center justify-center font-black border transition-all bg-slate-50 text-slate-900 border-slate-200 shadow-sm",
+                    currentOverBalls.length > 8 ? "w-4 h-4 text-[7px]" : 
+                    currentOverBalls.length > 6 ? "w-5 h-5 text-[8px]" : 
+                    "w-6 h-6 text-[10px]"
+                  )}
+                >
+                  {ball}
+                </div>
+              ))}
+              {currentOverBalls.length < 6 && [...Array(6 - currentOverBalls.length)].map((_, i) => (
+                <div 
+                  key={`empty-${i}`} 
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all bg-slate-100 text-slate-300 border-slate-200 flex-shrink-0"
+                />
+              ))}
             </div>
           </div>
-          <div className="w-full h-[24px] bg-slate-100 flex items-center justify-center border-t border-slate-200">
-            <div className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+          
+          <div className="w-full h-[22px] bg-slate-100 flex items-center justify-center border-t border-slate-200">
+            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
               {target !== null ? (
                 <div className="flex items-center gap-4">
                   <span className="text-indigo-600">TARGET: {target}</span>
@@ -545,7 +556,7 @@ export const Overlay: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Bowler & Ball Tracker */}
+      {/* Right: Bowler Info */}
       <div className="flex items-center h-full px-4 gap-4 border-l border-white/10 flex-1 justify-end min-w-0 pr-4 sm:pr-12">
         <div className="flex flex-col justify-center items-end max-w-full overflow-hidden">
           <div className="flex items-center justify-between w-full gap-2 sm:gap-4">
@@ -557,32 +568,8 @@ export const Overlay: React.FC = () => {
               </span>
             </span>
           </div>
-          <div className={cn(
-            "flex mt-2 items-center justify-end max-w-full",
-            currentOverBalls.length > 8 ? "gap-1" : "gap-2"
-          )}>
-            {currentOverBalls.map((ball, i) => (
-              <div 
-                key={i} 
-                className={cn(
-                  "rounded-full flex items-center justify-center font-black border transition-all bg-white text-slate-900 border-white shadow-lg scale-110 flex-shrink-0",
-                  currentOverBalls.length > 8 ? "w-4 h-4 text-[7px]" : 
-                  currentOverBalls.length > 6 ? "w-5 h-5 text-[8px]" : 
-                  "w-6 h-6 text-[10px]"
-                )}
-              >
-                {ball}
-              </div>
-            ))}
-            {currentOverBalls.length < 6 && [...Array(6 - currentOverBalls.length)].map((_, i) => (
-              <div 
-                key={`empty-${i}`} 
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all bg-white/10 text-white/30 border-white/10 flex-shrink-0"
-              />
-            ))}
-          </div>
         </div>
-        <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center p-2 border-2 border-white/20 shadow-lg">
+        <div className="w-14 h-14 sm:w-18 sm:h-18 bg-white/10 rounded-full flex items-center justify-center p-2 border-2 border-white/20 shadow-lg shrink-0">
           {bowlingTeam?.logo_url ? (
             <img src={bowlingTeam.logo_url} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           ) : (
