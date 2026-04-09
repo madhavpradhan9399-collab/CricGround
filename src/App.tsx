@@ -801,6 +801,13 @@ function MainApp() {
             onClick={() => handleTabClick('contact')} 
             collapsed={!isSidebarOpen}
           />
+          <SidebarItem 
+            icon={Info} 
+            label="About" 
+            active={activeTab === 'about'} 
+            onClick={() => handleTabClick('about')} 
+            collapsed={!isSidebarOpen}
+          />
         </nav>
 
         <div className="p-4 border-t border-slate-100">
@@ -1136,6 +1143,87 @@ function MainApp() {
                     </div>
                   </div>
                 </Card>
+              </motion.div>
+            )}
+
+            {activeTab === 'about' && (
+              <motion.div
+                key="about"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-4xl mx-auto"
+              >
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">About <span className="text-emerald-600">GroundScore</span></h2>
+                  <p className="text-slate-500 mt-2 font-medium text-lg">The ultimate platform for local cricket management and broadcasting.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[
+                    {
+                      title: "Real-Time Scoring",
+                      description: "Professional-grade scoring interface that updates instantly. Track every ball, run, and wicket with ease.",
+                      icon: Zap,
+                      color: "text-amber-500",
+                      bg: "bg-amber-50"
+                    },
+                    {
+                      title: "Tournament Management",
+                      description: "Organize leagues and tournaments effortlessly. Manage schedules, points tables, and team registrations in one place.",
+                      icon: Trophy,
+                      color: "text-emerald-600",
+                      bg: "bg-emerald-50"
+                    },
+                    {
+                      title: "Live Broadcasting",
+                      description: "Generate professional OBS overlays for your live streams. Bring a TV-like experience to your local matches.",
+                      icon: Tv,
+                      color: "text-blue-600",
+                      bg: "bg-blue-50"
+                    },
+                    {
+                      title: "Team & Player Stats",
+                      description: "Detailed profiles for every team and player. Track performance history and career statistics automatically.",
+                      icon: Users,
+                      color: "text-purple-600",
+                      bg: "bg-purple-50"
+                    },
+                    {
+                      title: "Instant Fixtures",
+                      description: "Keep everyone updated with automated match schedules and upcoming event notifications.",
+                      icon: CalendarDays,
+                      color: "text-rose-600",
+                      bg: "bg-rose-50"
+                    },
+                    {
+                      title: "Cloud Sync",
+                      description: "Your data is always safe and accessible from any device. Score on your phone, watch on your laptop.",
+                      icon: LayoutGrid,
+                      color: "text-indigo-600",
+                      bg: "bg-indigo-50"
+                    }
+                  ].map((feature, i) => (
+                    <Card key={i} className="p-6 border-none shadow-lg shadow-slate-200/50 hover:shadow-xl transition-all group">
+                      <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center mb-6 transition-transform group-hover:scale-110", feature.bg, feature.color)}>
+                        <feature.icon size={28} />
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">{feature.title}</h3>
+                      <p className="text-slate-500 font-medium leading-relaxed">{feature.description}</p>
+                    </Card>
+                  ))}
+                </div>
+
+                <div className="mt-12 p-8 bg-emerald-600 rounded-3xl text-white text-center shadow-xl shadow-emerald-200">
+                  <h3 className="text-2xl font-black uppercase italic tracking-tight mb-4">Ready to start your tournament?</h3>
+                  <p className="text-emerald-50 font-medium mb-8 max-w-xl mx-auto">Join hundreds of organizers who are already using GroundScore to professionalize their local cricket matches.</p>
+                  <button 
+                    onClick={() => handleTabClick('dashboard')}
+                    className="bg-white text-emerald-600 px-8 py-3 rounded-xl font-black uppercase tracking-wider hover:bg-emerald-50 transition-all shadow-lg"
+                  >
+                    Get Started Now
+                  </button>
+                </div>
               </motion.div>
             )}
 
