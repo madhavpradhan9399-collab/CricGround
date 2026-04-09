@@ -32,8 +32,13 @@ import {
   Image as ImageIcon,
   Loader2,
   Mail,
-  Instagram
+  Instagram,
+  BookOpen,
+  Share2,
+  Download,
+  FileText
 } from 'lucide-react';
+import { toPng } from 'html-to-image';
 import { supabase } from './lib/supabase';
 import { cn } from './lib/utils';
 import { ScoringPanel } from './components/ScoringPanel';
@@ -146,6 +151,28 @@ function MainApp() {
     }
   };
 
+  const handleGeneratePoster = async () => {
+    const posterElement = document.getElementById('match-poster');
+    if (!posterElement) return;
+
+    try {
+      setIsGeneratingPoster(true);
+      const dataUrl = await toPng(posterElement, { 
+        quality: 1, 
+        pixelRatio: 3,
+        cacheBust: true 
+      });
+      const link = document.createElement('a');
+      link.download = `match-poster-${selectedMatchForPoster?.id || 'match'}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Error generating poster:', err);
+    } finally {
+      setIsGeneratingPoster(false);
+    }
+  };
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -180,6 +207,9 @@ function MainApp() {
 
   // Match Form State
   const [showNewMatchModal, setShowNewMatchModal] = useState(false);
+  const [showPosterModal, setShowPosterModal] = useState(false);
+  const [selectedMatchForPoster, setSelectedMatchForPoster] = useState<any>(null);
+  const [isGeneratingPoster, setIsGeneratingPoster] = useState(false);
   const [newMatch, setNewMatch] = useState({
     tournament_id: '',
     team_a_id: '',
@@ -717,7 +747,7 @@ function MainApp() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Initializing GroundScore...</p>
+          <p className="text-slate-500 font-medium animate-pulse">Initializing Cricscore...</p>
         </div>
       </div>
     );
@@ -760,7 +790,7 @@ function MainApp() {
               animate={{ opacity: 1 }}
               className="font-black text-xl text-slate-900 tracking-tighter uppercase italic"
             >
-              Ground<span className="text-emerald-600">Score</span>
+              Cric<span className="text-emerald-600">score</span>
             </motion.span>
           )}
         </div>
@@ -802,6 +832,13 @@ function MainApp() {
             collapsed={!isSidebarOpen}
           />
           <SidebarItem 
+            icon={BookOpen} 
+            label="Guides" 
+            active={activeTab === 'guides'} 
+            onClick={() => handleTabClick('guides')} 
+            collapsed={!isSidebarOpen}
+          />
+          <SidebarItem 
             icon={Info} 
             label="About" 
             active={activeTab === 'about'} 
@@ -838,7 +875,7 @@ function MainApp() {
                 <Zap size={18} fill="currentColor" />
               </div>
               <span className="font-black text-lg text-slate-900 tracking-tighter uppercase italic">
-                Ground<span className="text-emerald-600">Score</span>
+                Cric<span className="text-emerald-600">score</span>
               </span>
             </div>
           </div>
@@ -849,7 +886,7 @@ function MainApp() {
               <Zap size={18} fill="currentColor" />
             </div>
             <span className="font-black text-xl text-slate-900 tracking-tighter uppercase italic">
-              Ground<span className="text-emerald-600">Score</span>
+              Cric<span className="text-emerald-600">score</span>
             </span>
           </div>
 
@@ -966,8 +1003,8 @@ function MainApp() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-                      {user ? 'Welcome back!' : 'Welcome to GroundScore!'}
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight uppercase italic">
+                      Champion <span className="text-emerald-600">Energy</span>
                     </h2>
                     <p className="text-slate-500 mt-1 font-medium">
                       {user ? "Here's what's happening in your tournaments." : "Sign in to start managing your own tournaments."}
@@ -1039,6 +1076,17 @@ function MainApp() {
                             </div>
                           </div>
                           <div className="flex items-center gap-3">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedMatchForPoster(match);
+                                setShowPosterModal(true);
+                              }}
+                              className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                              title="Share Match Poster"
+                            >
+                              <Share2 size={18} />
+                            </button>
                             <span className="text-xs font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">Score Now</span>
                             <ChevronRight size={20} className="text-slate-300 group-hover:text-emerald-600 transition-colors" />
                           </div>
@@ -1103,7 +1151,7 @@ function MainApp() {
 
                   <div className="mt-12 text-center">
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight">Madhav Pradhan</h3>
-                    <p className="text-emerald-600 font-bold uppercase tracking-widest text-sm mt-1">Founder of GROUNDSCORE</p>
+                    <p className="text-emerald-600 font-bold uppercase tracking-widest text-sm mt-1">Founder of CRICSCORE</p>
                     
                     <div className="mt-10 space-y-4">
                       <a 
@@ -1146,6 +1194,72 @@ function MainApp() {
               </motion.div>
             )}
 
+            {activeTab === 'guides' && (
+              <motion.div
+                key="guides"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="max-w-4xl mx-auto space-y-8"
+              >
+                <div className="text-center mb-12">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Help & <span className="text-emerald-600">Guides</span></h2>
+                  <p className="text-slate-500 mt-2 font-medium text-lg">Learn how to make the most of Cricscore for your cricket matches.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <Card className="p-8 border-none shadow-xl shadow-slate-200/50 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-6">
+                        <Tv size={24} />
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight">How to live stream local cricket with professional scores</h3>
+                      <div className="space-y-4 text-slate-600 font-medium">
+                        <p>1. **Setup OBS:** Download and install OBS Studio on your laptop.</p>
+                        <p>2. **Get Overlay Link:** Go to your match in Cricscore and copy the "OBS Overlay" URL.</p>
+                        <p>3. **Add Browser Source:** In OBS, add a new 'Browser' source and paste your overlay link.</p>
+                        <p>4. **Go Live:** Start your stream on YouTube or Facebook. The scores will update automatically as you score on your phone!</p>
+                      </div>
+                    </div>
+                  </Card>
+
+                  <Card className="p-8 border-none shadow-xl shadow-slate-200/50 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-6">
+                        <Trophy size={24} />
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight">5 tips for organizing a successful cricket tournament</h3>
+                      <div className="space-y-4 text-slate-600 font-medium">
+                        <p>1. **Plan Ahead:** Confirm team registrations and venue availability at least 2 weeks before the start.</p>
+                        <p>2. **Clear Rules:** share a PDF of tournament rules (overs, powerplays, tie-breakers) with all captains.</p>
+                        <p>3. **Use Cricscore:** Keep everyone updated with live scores and automated points tables.</p>
+                        <p>4. **Promote on Socials:** Use our "Match Poster" feature to share upcoming fixtures on WhatsApp and Instagram.</p>
+                        <p>5. **Quality Equipment:** Ensure good quality balls and a clear boundary marking for a professional feel.</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+                  <div className="relative flex flex-col md:flex-row items-center gap-8">
+                    <div className="flex-1">
+                      <h3 className="text-2xl font-black uppercase italic tracking-tight mb-4">Need more help?</h3>
+                      <p className="text-slate-400 font-medium mb-0">Our team is always ready to help you set up your first tournament or troubleshoot any issues with OBS overlays.</p>
+                    </div>
+                    <button 
+                      onClick={() => handleTabClick('contact')}
+                      className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-black uppercase tracking-wider hover:bg-emerald-700 transition-all shadow-lg whitespace-nowrap"
+                    >
+                      Contact Support
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {activeTab === 'about' && (
               <motion.div
                 key="about"
@@ -1155,50 +1269,50 @@ function MainApp() {
                 className="max-w-4xl mx-auto"
               >
                 <div className="text-center mb-12">
-                  <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">About <span className="text-emerald-600">GroundScore</span></h2>
-                  <p className="text-slate-500 mt-2 font-medium text-lg">The ultimate platform for local cricket management and broadcasting.</p>
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">About <span className="text-emerald-600">Cricscore</span></h2>
+                  <p className="text-slate-500 mt-2 font-medium text-lg">Bringing **Champion Energy** to local cricket management and broadcasting.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {[
                     {
                       title: "Real-Time Scoring",
-                      description: "Professional-grade scoring interface that updates instantly. Track every ball, run, and wicket with ease.",
+                      description: "Professional-grade scoring interface that updates instantly. Track every ball, run, and wicket with ease. Perfect for any free cricket scoring app needs.",
                       icon: Zap,
                       color: "text-amber-500",
                       bg: "bg-amber-50"
                     },
                     {
-                      title: "Tournament Management",
-                      description: "Organize leagues and tournaments effortlessly. Manage schedules, points tables, and team registrations in one place.",
+                      title: "Local Tournament Manager",
+                      description: "Organize leagues and tournaments effortlessly. Manage schedules, points tables, and team registrations in one place with our local tournament manager tools.",
                       icon: Trophy,
                       color: "text-emerald-600",
                       bg: "bg-emerald-50"
                     },
                     {
-                      title: "Live Broadcasting",
-                      description: "Generate professional OBS overlays for your live streams. Bring a TV-like experience to your local matches.",
+                      title: "Cricket OBS Overlays",
+                      description: "Generate professional **Cricket OBS overlays** for your live streams. Bring a TV-like experience to your local matches with high-quality graphics.",
                       icon: Tv,
                       color: "text-blue-600",
                       bg: "bg-blue-50"
                     },
                     {
                       title: "Team & Player Stats",
-                      description: "Detailed profiles for every team and player. Track performance history and career statistics automatically.",
+                      description: "Detailed profiles for every team and player. Track performance history and career statistics automatically for your local cricket community.",
                       icon: Users,
                       color: "text-purple-600",
                       bg: "bg-purple-50"
                     },
                     {
                       title: "Instant Fixtures",
-                      description: "Keep everyone updated with automated match schedules and upcoming event notifications.",
+                      description: "Keep everyone updated with automated match schedules and upcoming event notifications. The best tool for local tournament management.",
                       icon: CalendarDays,
                       color: "text-rose-600",
                       bg: "bg-rose-50"
                     },
                     {
                       title: "Cloud Sync",
-                      description: "Your data is always safe and accessible from any device. Score on your phone, watch on your laptop.",
+                      description: "Your data is always safe and accessible from any device. Score on your phone, watch on your laptop. A reliable free cricket scoring app solution.",
                       icon: LayoutGrid,
                       color: "text-indigo-600",
                       bg: "bg-indigo-50"
@@ -1216,7 +1330,7 @@ function MainApp() {
 
                 <div className="mt-12 p-8 bg-emerald-600 rounded-3xl text-white text-center shadow-xl shadow-emerald-200">
                   <h3 className="text-2xl font-black uppercase italic tracking-tight mb-4">Ready to start your tournament?</h3>
-                  <p className="text-emerald-50 font-medium mb-8 max-w-xl mx-auto">Join hundreds of organizers who are already using GroundScore to professionalize their local cricket matches.</p>
+                  <p className="text-emerald-50 font-medium mb-8 max-w-xl mx-auto">Join hundreds of organizers who are already using Cricscore to professionalize their local cricket matches.</p>
                   <button 
                     onClick={() => handleTabClick('dashboard')}
                     className="bg-white text-emerald-600 px-8 py-3 rounded-xl font-black uppercase tracking-wider hover:bg-emerald-50 transition-all shadow-lg"
@@ -1431,6 +1545,16 @@ function MainApp() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => {
+                            setSelectedMatchForPoster(match);
+                            setShowPosterModal(true);
+                          }}
+                          className="p-2.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                          title="Share Match Poster"
+                        >
+                          <Share2 size={20} />
+                        </button>
                         {match.status !== 'Completed' && (
                           <button 
                             onClick={() => {
@@ -1455,6 +1579,123 @@ function MainApp() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Match Poster Modal */}
+      <AnimatePresence>
+        {showPosterModal && selectedMatchForPoster && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPosterModal(false)}
+              className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden"
+            >
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-8">
+                  <h3 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">Match <span className="text-emerald-600">Poster</span></h3>
+                  <button 
+                    onClick={() => setShowPosterModal(false)}
+                    className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                {/* Poster Preview Area */}
+                <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-100">
+                  <div 
+                    id="match-poster"
+                    className="aspect-[4/5] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 flex flex-col items-center justify-between text-white relative"
+                  >
+                    {/* Background Pattern */}
+                    <div className="absolute inset-0 opacity-10 bg-cricket-pattern pointer-events-none" />
+                    
+                    <div className="relative z-10 text-center w-full">
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center text-white rotate-3">
+                          <Zap size={18} fill="currentColor" />
+                        </div>
+                        <span className="font-black text-lg tracking-tighter uppercase italic">
+                          Cric<span className="text-emerald-400">score</span>
+                        </span>
+                      </div>
+                      <p className="text-emerald-400 font-black text-xs uppercase tracking-[0.3em] mb-8">{selectedMatchForPoster.tournament?.name || 'CRICKET TOURNAMENT'}</p>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col items-center gap-8 w-full">
+                      <div className="flex items-center justify-center gap-6 w-full">
+                        <div className="flex flex-col items-center gap-3 flex-1">
+                          <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-sm">
+                            {selectedMatchForPoster.team_a?.logo_url ? (
+                              <img src={selectedMatchForPoster.team_a.logo_url} alt="A" className="w-14 h-14 object-contain" referrerPolicy="no-referrer" />
+                            ) : (
+                              <Users size={40} className="text-white/40" />
+                            )}
+                          </div>
+                          <span className="font-black text-lg uppercase tracking-tight text-center line-clamp-2">{selectedMatchForPoster.team_a?.name}</span>
+                        </div>
+
+                        <div className="flex flex-col items-center">
+                          <span className="text-emerald-500 font-black text-4xl italic">VS</span>
+                        </div>
+
+                        <div className="flex flex-col items-center gap-3 flex-1">
+                          <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 backdrop-blur-sm">
+                            {selectedMatchForPoster.team_b?.logo_url ? (
+                              <img src={selectedMatchForPoster.team_b.logo_url} alt="B" className="w-14 h-14 object-contain" referrerPolicy="no-referrer" />
+                            ) : (
+                              <Users size={40} className="text-white/40" />
+                            )}
+                          </div>
+                          <span className="font-black text-lg uppercase tracking-tight text-center line-clamp-2">{selectedMatchForPoster.team_b?.name}</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-white/5 border border-white/10 rounded-3xl p-6 w-full text-center backdrop-blur-md">
+                        <p className="text-emerald-400 font-black text-4xl mb-2 tracking-tighter">{selectedMatchForPoster.score || '0/0 (0.0)'}</p>
+                        <p className="text-white/60 font-bold text-sm uppercase tracking-widest">{selectedMatchForPoster.status} MATCH</p>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 text-center w-full mt-8">
+                      <p className="text-white/40 font-bold text-[10px] uppercase tracking-[0.2em]">Watch Live Scores At</p>
+                      <p className="text-white font-black text-sm tracking-tight mt-1">groundscore.vercel.app</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex gap-4">
+                  <button 
+                    onClick={() => setShowPosterModal(false)}
+                    className="flex-1 px-6 py-4 bg-slate-100 text-slate-600 font-black uppercase tracking-wider rounded-2xl hover:bg-slate-200 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleGeneratePoster}
+                    disabled={isGeneratingPoster}
+                    className="flex-[2] px-6 py-4 bg-emerald-600 text-white font-black uppercase tracking-wider rounded-2xl hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 disabled:opacity-50"
+                  >
+                    {isGeneratingPoster ? (
+                      <Loader2 className="animate-spin" size={20} />
+                    ) : (
+                      <Download size={20} />
+                    )}
+                    {isGeneratingPoster ? 'Generating...' : 'Download HD Poster'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* New Tournament Modal */}
       <AnimatePresence>
@@ -2022,7 +2263,7 @@ function MainApp() {
                   <Zap size={32} fill="currentColor" />
                 </div>
                 <h1 className="text-3xl font-black text-slate-900 text-center mb-2 tracking-tighter uppercase italic">
-                  Ground<span className="text-emerald-600">Score</span>
+                  Cric<span className="text-emerald-600">score</span>
                 </h1>
                 <p className="text-slate-500 text-center mb-8">
                   {isForgotPassword ? 'Reset your password' : (isSignUp ? 'Create your account' : 'Sign in to your account')}

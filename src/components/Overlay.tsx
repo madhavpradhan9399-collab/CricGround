@@ -524,8 +524,18 @@ export const Overlay: React.FC = () => {
         "absolute top-0 left-1/2 -translate-x-1/2 px-4 py-0.5 text-white text-[8px] font-black tracking-[0.4em] rounded-b-md shadow-sm z-50",
         currentTheme.tab
       )}>
-        GROUND SCORE
+        CRICSCORE
       </div>
+
+      {/* Powered by Watermark */}
+      <div className="absolute bottom-1 right-2 flex items-center gap-1 opacity-40">
+        <span className="text-[7px] font-black text-white uppercase tracking-widest">Powered by</span>
+        <div className="flex items-center gap-0.5">
+          <Zap size={8} className="text-white fill-white" />
+          <span className="text-[8px] font-black text-white tracking-tighter italic">CRIC<span className="text-white/80">SCORE</span></span>
+        </div>
+      </div>
+
       {/* Left: Batting Team Logo & Batters */}
       <div className="flex items-center h-full px-4 gap-4 border-r border-white/10 flex-1 min-w-0">
         <div className="w-14 h-14 sm:w-18 sm:h-18 bg-white/10 rounded-lg flex items-center justify-center p-2 shadow-inner border border-white/5 shrink-0">
