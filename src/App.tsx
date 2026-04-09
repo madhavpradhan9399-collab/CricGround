@@ -131,10 +131,19 @@ function MainApp() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [selectedTeamForPlayers, setSelectedTeamForPlayers] = useState<any | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
     setIsSidebarOpen(false);
+  };
+
+  const handleWorkAction = (action: () => void) => {
+    if (user) {
+      action();
+    } else {
+      setShowLoginModal(true);
+    }
   };
 
   useEffect(() => {
@@ -238,6 +247,10 @@ function MainApp() {
           fetchTournaments(3, session.user);
           fetchMatches(3, session.user);
           fetchTeams(3, session.user);
+        } else {
+          fetchTournaments(3, null);
+          fetchMatches(3, null);
+          fetchTeams(3, null);
         }
       } catch (err: any) {
         console.error('Auth initialization error:', err);
@@ -264,9 +277,9 @@ function MainApp() {
           fetchTeams(3, currentUser);
         }
       } else {
-        setTournaments([]);
-        setMatches([]);
-        setTeams([]);
+        fetchTournaments(3, null);
+        fetchMatches(3, null);
+        fetchTeams(3, null);
       }
     });
 
@@ -286,13 +299,20 @@ function MainApp() {
 
   const fetchTeams = async (retries = 3, currentUser = user) => {
     const url = import.meta.env.VITE_SUPABASE_URL;
-    if (!url || url === 'https://placeholder.supabase.co' || !currentUser) return;
+    if (!url || url === 'https://placeholder.supabase.co') return;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('teams')
-        .select('*, tournament:tournaments(name), players(*)')
-        .or(`user_id.eq.${currentUser.id},user_id.is.null`);
+        .select('*, tournament:tournaments(name), players(*)');
+      
+      if (currentUser) {
+        query = query.or(`user_id.eq.${currentUser.id},user_id.is.null`);
+      } else {
+        query = query.is('user_id', null);
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching teams:', error);
@@ -316,19 +336,24 @@ function MainApp() {
 
   const fetchTournaments = async (retries = 3, currentUser = user) => {
     const url = import.meta.env.VITE_SUPABASE_URL;
-    if (!url || url === 'https://placeholder.supabase.co' || !currentUser) {
-      if (!url || url === 'https://placeholder.supabase.co') {
-        setSupabaseError('Supabase URL is missing or set to placeholder. Please configure it in Settings.');
-      }
+    if (!url || url === 'https://placeholder.supabase.co') {
+      setSupabaseError('Supabase URL is missing or set to placeholder. Please configure it in Settings.');
       return;
     }
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('tournaments')
         .select('*')
-        .or(`user_id.eq.${currentUser.id},user_id.is.null`)
         .order('created_at', { ascending: false });
+
+      if (currentUser) {
+        query = query.or(`user_id.eq.${currentUser.id},user_id.is.null`);
+      } else {
+        query = query.is('user_id', null);
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching tournaments:', error);
@@ -353,14 +378,21 @@ function MainApp() {
 
   const fetchMatches = async (retries = 3, currentUser = user) => {
     const url = import.meta.env.VITE_SUPABASE_URL;
-    if (!url || url === 'https://placeholder.supabase.co' || !currentUser) return;
+    if (!url || url === 'https://placeholder.supabase.co') return;
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('matches')
         .select('*, team_a:teams!team_a_id(name), team_b:teams!team_b_id(name)')
-        .or(`user_id.eq.${currentUser.id},user_id.is.null`)
         .order('date_time', { ascending: false });
+
+      if (currentUser) {
+        query = query.or(`user_id.eq.${currentUser.id},user_id.is.null`);
+      } else {
+        query = query.is('user_id', null);
+      }
+
+      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching matches:', error);
@@ -409,6 +441,7 @@ function MainApp() {
           password,
         });
         if (error) throw error;
+        setShowLoginModal(false);
       }
     } catch (error: any) {
       setAuthError(error.message);
@@ -679,90 +712,13 @@ function MainApp() {
   }
 
   // Auth Guard
-  if (!user) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md p-8">
-          <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Trophy size={32} />
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 text-center mb-2">CricOverlay</h1>
-          <p className="text-slate-500 text-center mb-8">
-            {isForgotPassword ? 'Reset your password' : (isSignUp ? 'Create your account' : 'Sign in to your account')}
-          </p>
-          
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
-                placeholder="you@example.com"
-              />
-            </div>
-            {!isForgotPassword && (
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-slate-700">Password</label>
-                  {!isSignUp && (
-                    <button 
-                      type="button"
-                      onClick={() => setIsForgotPassword(true)}
-                      className="text-xs text-emerald-600 hover:underline font-medium"
-                    >
-                      Forgot Password?
-                    </button>
-                  )}
-                </div>
-                <input 
-                  type="password" 
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
-                  placeholder="••••••••"
-                />
-              </div>
-            )}
-
-            {authError && (
-              <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{authError}</p>
-            )}
-
-            <button 
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? 'Processing...' : (isForgotPassword ? 'Send Reset Link' : (isSignUp ? 'Sign Up' : 'Sign In'))}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center space-y-2">
-            {isForgotPassword ? (
-              <button 
-                onClick={() => setIsForgotPassword(false)}
-                className="text-sm text-emerald-600 font-medium hover:underline block w-full"
-              >
-                Back to Sign In
-              </button>
-            ) : (
-              <button 
-                onClick={() => setIsSignUp(!isSignUp)}
-                className="text-sm text-emerald-600 font-medium hover:underline block w-full"
-              >
-                {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-              </button>
-            )}
-          </div>
-          
-          <p className="mt-8 text-xs text-slate-400 text-center">
-            By continuing, you agree to our Terms of Service
-          </p>
-        </Card>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Initializing GroundScore...</p>
+        </div>
       </div>
     );
   }
@@ -891,13 +847,24 @@ function MainApp() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-sm font-semibold text-slate-900">{user?.email?.split('@')[0]}</span>
-              <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Scorer</span>
-            </div>
-            <div className="w-10 h-10 bg-slate-100 rounded-full border-2 border-white shadow-sm overflow-hidden">
-              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} alt="Avatar" />
-            </div>
+            {user ? (
+              <>
+                <div className="hidden md:flex flex-col items-end">
+                  <span className="text-sm font-semibold text-slate-900">{user?.email?.split('@')[0]}</span>
+                  <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Scorer</span>
+                </div>
+                <div className="w-10 h-10 bg-slate-100 rounded-full border-2 border-white shadow-sm overflow-hidden">
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} alt="Avatar" />
+                </div>
+              </>
+            ) : (
+              <button 
+                onClick={() => setShowLoginModal(true)}
+                className="bg-emerald-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 uppercase tracking-wider text-xs"
+              >
+                Sign In
+              </button>
+            )}
           </div>
         </header>
 
@@ -992,11 +959,15 @@ function MainApp() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Welcome back!</h2>
-                    <p className="text-slate-500 mt-1 font-medium">Here's what's happening in your tournaments.</p>
+                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                      {user ? 'Welcome back!' : 'Welcome to GroundScore!'}
+                    </h2>
+                    <p className="text-slate-500 mt-1 font-medium">
+                      {user ? "Here's what's happening in your tournaments." : "Sign in to start managing your own tournaments."}
+                    </p>
                   </div>
                   <button 
-                    onClick={() => setShowNewTournamentModal(true)}
+                    onClick={() => handleWorkAction(() => setShowNewTournamentModal(true))}
                     className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 uppercase tracking-wider text-sm w-full sm:w-auto"
                   >
                     <Plus size={20} />
@@ -1037,7 +1008,11 @@ function MainApp() {
                         <div 
                           key={i} 
                           onClick={() => {
-                            handleTabClick(`scoring-${match.id}`);
+                            if (match.status === 'Live') {
+                              handleWorkAction(() => handleTabClick(`scoring-${match.id}`));
+                            } else {
+                              handleTabClick(`scoring-${match.id}`);
+                            }
                           }}
                           className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer group"
                         >
@@ -1204,7 +1179,7 @@ function MainApp() {
                       />
                     </div>
                     <button 
-                      onClick={() => setShowNewTournamentModal(true)}
+                      onClick={() => handleWorkAction(() => setShowNewTournamentModal(true))}
                       className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
                     >
                       <Plus size={20} />
@@ -1271,7 +1246,7 @@ function MainApp() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Teams</h2>
                   <button 
-                    onClick={() => setShowNewTeamModal(true)}
+                    onClick={() => handleWorkAction(() => setShowNewTeamModal(true))}
                     className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <Plus size={20} />
@@ -1309,8 +1284,10 @@ function MainApp() {
                         </button>
                         <button 
                           onClick={() => {
-                            setNewPlayer({ ...newPlayer, team_id: team.id });
-                            setShowNewPlayerModal(true);
+                            handleWorkAction(() => {
+                              setNewPlayer({ ...newPlayer, team_id: team.id });
+                              setShowNewPlayerModal(true);
+                            });
                           }}
                           className="p-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
                           title="Add Player"
@@ -1340,7 +1317,7 @@ function MainApp() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <h2 className="text-2xl md:text-3xl font-bold text-slate-900">Fixtures</h2>
                   <button 
-                    onClick={() => setShowNewMatchModal(true)}
+                    onClick={() => handleWorkAction(() => setShowNewMatchModal(true))}
                     className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <Plus size={20} />
@@ -1369,7 +1346,7 @@ function MainApp() {
                         {match.status !== 'Completed' && (
                           <button 
                             onClick={() => {
-                              handleTabClick(`scoring-${match.id}`);
+                              handleWorkAction(() => handleTabClick(`scoring-${match.id}`));
                             }}
                             className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-emerald-700 transition-all"
                           >
@@ -1923,6 +1900,114 @@ function MainApp() {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Login Modal */}
+      <AnimatePresence>
+        {showLoginModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLoginModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md"
+            >
+              <Card className="p-8 shadow-2xl border-none">
+                <button 
+                  onClick={() => setShowLoginModal(false)}
+                  className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+
+                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white shadow-xl shadow-emerald-200 rotate-3">
+                  <Zap size={32} fill="currentColor" />
+                </div>
+                <h1 className="text-3xl font-black text-slate-900 text-center mb-2 tracking-tighter uppercase italic">
+                  Ground<span className="text-emerald-600">Score</span>
+                </h1>
+                <p className="text-slate-500 text-center mb-8">
+                  {isForgotPassword ? 'Reset your password' : (isSignUp ? 'Create your account' : 'Sign in to your account')}
+                </p>
+                
+                <form onSubmit={handleAuth} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+                    <input 
+                      type="email" 
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                      placeholder="you@example.com"
+                    />
+                  </div>
+                  {!isForgotPassword && (
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-sm font-medium text-slate-700">Password</label>
+                        {!isSignUp && (
+                          <button 
+                            type="button"
+                            onClick={() => setIsForgotPassword(true)}
+                            className="text-xs text-emerald-600 hover:underline font-medium"
+                          >
+                            Forgot Password?
+                          </button>
+                        )}
+                      </div>
+                      <input 
+                        type="password" 
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  )}
+
+                  {authError && (
+                    <p className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">{authError}</p>
+                  )}
+
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-emerald-600 text-white py-3 rounded-xl font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? 'Processing...' : (isForgotPassword ? 'Send Reset Link' : (isSignUp ? 'Sign Up' : 'Sign In'))}
+                  </button>
+                </form>
+
+                <div className="mt-6 text-center space-y-2">
+                  {isForgotPassword ? (
+                    <button 
+                      onClick={() => setIsForgotPassword(false)}
+                      className="text-sm text-emerald-600 font-medium hover:underline block w-full"
+                    >
+                      Back to Sign In
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => setIsSignUp(!isSignUp)}
+                      className="text-sm text-emerald-600 font-medium hover:underline block w-full"
+                    >
+                      {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+                    </button>
+                  )}
+                </div>
+              </Card>
             </motion.div>
           </div>
         )}
