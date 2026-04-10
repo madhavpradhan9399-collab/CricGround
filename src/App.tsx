@@ -496,29 +496,54 @@ function MainApp() {
       const fileName = `${user.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      // Try uploading to Supabase Storage
+      const { error: uploadError } = await supabase.storage
         .from('logos')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        // If storage fails (e.g. bucket not found), fallback to Base64
+        console.warn('Storage upload failed, falling back to Base64:', uploadError);
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          setNewTeam({ ...newTeam, logo_url: base64String });
+          setStatusMessage({ text: 'Logo attached successfully!', type: 'success' });
+          setUploadingLogo(false);
+        };
+        reader.onerror = () => {
+          setStatusMessage({ text: 'Failed to process image file.', type: 'error' });
+          setUploadingLogo(false);
+        };
+        reader.readAsDataURL(file);
+        return; // Exit early as we're handling the state in onloadend
+      }
 
+      // If successful, get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('logos')
         .getPublicUrl(filePath);
 
       setNewTeam({ ...newTeam, logo_url: publicUrl });
+      setStatusMessage({ text: 'Logo uploaded successfully!', type: 'success' });
     } catch (error: any) {
-      console.error('Error uploading logo:', error);
-      if (error.message === 'Bucket not found') {
-        setStatusMessage({ 
-          text: '❌ ERROR: Storage bucket "logos" was not found. Please create it in Supabase Dashboard.', 
-          type: 'error' 
-        });
-      } else {
-        setStatusMessage({ text: `Upload failed: ${error.message}. Make sure the 'logos' bucket exists and is public.`, type: 'error' });
-      }
+      console.error('Unexpected error during upload:', error);
+      // Final fallback to Base64 on any unexpected error
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setNewTeam({ ...newTeam, logo_url: base64String });
+        setStatusMessage({ text: 'Logo attached successfully!', type: 'success' });
+        setUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+      return;
     } finally {
-      setUploadingLogo(false);
+      // Only set to false if we didn't enter the FileReader flow which handles its own state
+      if (!e.target.files?.[0]) {
+        setUploadingLogo(false);
+      }
     }
   };
 
@@ -1242,6 +1267,26 @@ function MainApp() {
                   </Card>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                  <Card className="p-8 border-none shadow-xl shadow-slate-200/50 overflow-hidden relative group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+                    <div className="relative">
+                      <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center mb-6">
+                        <Settings size={24} />
+                      </div>
+                      <h3 className="text-xl font-black text-slate-900 mb-4 uppercase tracking-tight">Fixing Logo Upload Errors</h3>
+                      <div className="space-y-4 text-slate-600 font-medium">
+                        <p>If you see a "Storage bucket not found" error when uploading logos:</p>
+                        <p>1. **Open Supabase:** Go to your Supabase project dashboard.</p>
+                        <p>2. **Storage:** Click on 'Storage' in the left sidebar.</p>
+                        <p>3. **New Bucket:** Create a new bucket named exactly `logos`.</p>
+                        <p>4. **Make Public:** Ensure the bucket is set to 'Public' so everyone can see the team logos.</p>
+                        <p>5. **Fallback:** If you can't access Supabase, you can simply paste a direct image link in the "Logo URL" field.</p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
                 <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
                   <div className="relative flex flex-col md:flex-row items-center gap-8">
@@ -1902,6 +1947,15 @@ function MainApp() {
                               onChange={handleLogoUpload}
                             />
                           </label>
+                          <div className="mt-2">
+                            <input 
+                              type="text"
+                              placeholder="Or paste Logo URL here..."
+                              className="w-full px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                              value={newTeam.logo_url}
+                              onChange={(e) => setNewTeam({...newTeam, logo_url: e.target.value})}
+                            />
+                          </div>
                           <p className="text-[10px] text-slate-400 mt-1.5">PNG, JPG up to 2MB</p>
                         </div>
                       </div>
